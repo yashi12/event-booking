@@ -3,7 +3,7 @@ var express = require('express');
 var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
-const { graphqlHTTP } = require('express-graphql');
+const {graphqlHTTP} = require('express-graphql');
 const {buildSchema} = require('graphql');
 
 var app = express();
@@ -14,13 +14,29 @@ app.use(express.json());
 app.use(express.urlencoded({extended: false}));
 app.use(cookieParser());
 
+const Events = [];
+
 app.use('/graphql', graphqlHTTP({
     schema: buildSchema(`
+    type Event{
+        _id: ID!
+        title: String!
+        description: String!
+        price: Float!
+        date: String!
+    }
+
+    input EventInput{
+        title: String!
+        description: String!
+        price: Float!
+        date: String
+    }
      type RootQuery{
-       events: [String!]!
+       events: [Event!]!
      }
      type RootMutation{
-       createEvent(name:String):String
+       createEvent(eventInput: EventInput): Event
      }
     schema {
       query: RootQuery
@@ -28,10 +44,19 @@ app.use('/graphql', graphqlHTTP({
     }`),
     rootValue: {
         events: () => {
-            return ['Code', 'Study', 'Code', 'Eat', 'Sleep']
+            return Events;
         },
         createEvent: (args) => {
-            return args.name
+            console.log(args)
+            const event = {
+                _id: Math.random().toString(),
+                title: args.eventInput.title,
+                description: args.eventInput.description,
+                price: args.eventInput.price,
+                date: new Date().toString()
+            }
+            Events.push(event)
+            return event
         }
     },
     graphiql: true
