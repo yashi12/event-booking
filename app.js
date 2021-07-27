@@ -1,3 +1,4 @@
+require('dotenv/config');
 var createError = require('http-errors');
 var express = require('express');
 var path = require('path');
@@ -5,9 +6,15 @@ var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 const {graphqlHTTP} = require('express-graphql');
 const {buildSchema} = require('graphql');
+const env = require('dotenv');
+const mongoose = require('mongoose');
+
+const Event = require('./models/event');
+
+const connectDB = require('./db');
 
 var app = express();
-
+connectDB();
 
 app.use(logger('dev'));
 app.use(express.json());
@@ -44,19 +51,32 @@ app.use('/graphql', graphqlHTTP({
     }`),
     rootValue: {
         events: () => {
-            return Events;
+            return Event.find({})
+                .then(events => {
+                    console.log(events)
+                    return events
+                })
+                .catch(err => {
+                    console.log(err.message);
+                    throw err;
+                })
         },
         createEvent: (args) => {
             console.log(args)
-            const event = {
-                _id: Math.random().toString(),
+            const event = new Event({
                 title: args.eventInput.title,
                 description: args.eventInput.description,
-                price: args.eventInput.price,
-                date: new Date().toString()
-            }
-            Events.push(event)
-            return event
+                price: args.eventInput.price
+            });
+            return event.save()
+                .then(result => {
+                    console.log(result);
+                    return {...result._doc};
+                })
+                .catch(err => {
+                    console.log(err.message);
+                    throw err;
+                })
         }
     },
     graphiql: true
