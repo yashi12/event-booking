@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs');
 
 const Event = require('../../models/event');
 const User = require('../../models/user');
+const Booking = require('../../models/booking');
 
 const events = async eventIds => {
     const events = await Event.find({_id: {$in: eventIds}});
@@ -31,7 +32,21 @@ const user = async userId => {
     } catch (err) {
         throw new Error(err.message);
     }
-}
+};
+
+const singleEvent = async eventId => {
+    try {
+        const event = await Event.findById(eventId);
+        if (!event)
+            throw new Error('Event not exist');
+        return {
+            ...event._doc,
+            creator: user.bind(this, event._doc.creator)
+        }
+    } catch (err) {
+        throw new Error(err.message);
+    }
+};
 
 module.exports = {
     events: async () => {
@@ -46,6 +61,22 @@ module.exports = {
             })
         } catch (err) {
             console.log(err.message);
+            throw err;
+        }
+    },
+    bookings: async () => {
+        try {
+            const bookings = await Booking.find();
+            return bookings.map(booking => {
+                return {
+                    ...booking._doc,
+                    user: user.bind(this,booking._doc.user),
+                    event: singleEvent.bind(this,booking._doc.event),
+                    createdAt: new Date(booking._doc.createdAt).toISOString(),
+                    updatedAt: new Date(booking._doc.updatedAt).toISOString()
+                };
+            });
+        } catch (err) {
             throw err;
         }
     },
@@ -85,10 +116,43 @@ module.exports = {
                 email: args.userInput.email,
                 password: hashedPassword
             });
-            const result =await newUser.save();
+            const result = await newUser.save();
             return {...result._doc, password: null}
         } catch (err) {
             throw err;
+        }
+    },
+    bookEvent: async args => {
+        const fetchedEvent = await Event.findById(args.eventId);
+        if (!fetchedEvent)
+            throw new Error('No such event present');
+        const booking = new Booking({
+            user: '60ffdacce6705b1314c11e18',
+            event: fetchedEvent
+        });
+        const result = await booking.save();
+        return {
+            ...result._doc,
+            user: user.bind(this,result._doc.user),
+            event: singleEvent.bind(this,result._doc.event),
+            createdAt: new Date(result._doc.createdAt).toISOString(),
+            updatedAt: new Date(result._doc.updatedAt).toISOString()
+        };
+    },
+    cancelBooking: async args =>{
+        try {
+            const result = await Booking.findByIdAndDelete(args.bookingId);
+            if(!result)
+                return null;
+            console.log("returned")
+            const event = await Event.findById(result.event);
+            return{
+                ...event._doc,
+                creator: user.bind(this,event._doc.creator),
+                date: new Date(event._doc.date).toISOString()
+            }
+        }catch (err) {
+            throw err
         }
     }
 };
