@@ -10,12 +10,15 @@ const mongoose = require('mongoose');
 
 const graphQlSchema = require('./graphQl/schema/index');
 const graphQlResolver = require('./graphQl/resolvers/index');
+const isAuth = require('./middleware/isAuth');
 
 
 const connectDB = require('./db');
 
 var app = express();
 connectDB();
+
+app.use(isAuth);
 
 app.use(logger('dev'));
 app.use(express.json());

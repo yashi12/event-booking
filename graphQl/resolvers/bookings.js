@@ -3,7 +3,9 @@ const Booking = require('../../models/booking');
 const {transformEvent,transformBooking} = require('./helper');
 
 module.exports = {
-    bookings: async () => {
+    bookings: async (args,req) => {
+        if(!req.isAuth)
+            throw new Error('Not authenticated! ');
         try {
             const bookings = await Booking.find();
             return bookings.map(booking => {
@@ -13,7 +15,9 @@ module.exports = {
             throw err;
         }
     },
-    bookEvent: async args => {
+    bookEvent: async (args,req) => {
+        if(!req.isAuth)
+            throw new Error('Not authenticated! ');
         const fetchedEvent = await Event.findById(args.eventId);
         if (!fetchedEvent)
             throw new Error('No such event present');
@@ -24,7 +28,9 @@ module.exports = {
         const result = await booking.save();
         return transformBooking(result);
     },
-    cancelBooking: async args => {
+    cancelBooking: async (args,req) => {
+        if(!req.isAuth)
+            throw new Error('Not authenticated! ');
         try {
             const result = await Booking.findByIdAndDelete(args.bookingId);
             if (!result)
